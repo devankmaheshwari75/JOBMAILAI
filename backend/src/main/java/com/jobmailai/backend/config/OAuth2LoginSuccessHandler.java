@@ -7,6 +7,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -21,8 +24,10 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final OAuth2AuthorizedClientService authorizedClientService;
 
     @Override
+
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
@@ -45,6 +50,28 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             user.setPictureUrl(pictureUrl);
             user.setGoogleId(googleId);
             user.setEmail(email);
+        }
+
+        System.out.println("fetched the inmop thintgs");
+
+        if (authentication instanceof OAuth2AuthenticationToken) {
+            System.out.println("entered fro getting the tokrn");
+            OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+            System.out.println(oauthToken);
+
+            String clientRegistrationId = oauthToken.getAuthorizedClientRegistrationId();
+
+            OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
+                    clientRegistrationId,
+                    oauthToken.getName() // The principal's name (which is the unique googleId/sub)
+            );
+            if (client != null && client.getRefreshToken() != null) {
+                String refreshToken = client.getRefreshToken().getTokenValue();
+                user.setGoogleRefreshToken(refreshToken);
+                System.out.println(">>>>>> Successfully captured and set refresh token for user: " + user.getEmail());
+            } else {
+                System.out.println(">>>>>> Refresh token not found for user: " + user.getEmail() + ". This is normal for subsequent logins.");
+            }
         }
 
         userRepository.save(user);
