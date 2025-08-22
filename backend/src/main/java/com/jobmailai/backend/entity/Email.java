@@ -2,81 +2,41 @@ package com.jobmailai.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Data
 public class Email {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // This is a crucial field to prevent saving the same email multiple times.
+    // It will store the unique message ID from Gmail.
+    @Column(nullable = false, unique = true)
+    private String messageId;
+
+    @Column(length = 512) // It's good practice to set a length for strings
     private String subject;
+
+    @Column(length = 255)
     private String sender;
+
     @Column(columnDefinition = "TEXT")
     private String body;
 
+    // This field is now correctly handled by Lombok.
     private LocalDateTime timestamp;
 
-    private Boolean jobFlag;
+    // Setting a default value is better than allowing nulls.
+    @Column(nullable = false)
+    private boolean jobFlag = false;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getSubject() {
-        return subject;
-    }
-
-    public void setSubject(String subject) {
-        this.subject = subject;
-    }
-
-    public String getSender() {
-        return sender;
-    }
-
-    public void setSender(String sender) {
-        this.sender = sender;
-    }
-
-    public String getBody() {
-        return body;
-    }
-
-    public void setBody(String body) {
-        this.body = body;
-    }
-
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public Boolean getJobFlag() {
-        return jobFlag;
-    }
-
-    public void setJobFlag(Boolean jobFlag) {
-        this.jobFlag = jobFlag;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    @ManyToOne
-    @JoinColumn(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY fetching is often better for performance
+    @JoinColumn(name = "user_id", nullable = false) // Naming the foreign key column is good practice
     @JsonBackReference
     private User user;
 }
